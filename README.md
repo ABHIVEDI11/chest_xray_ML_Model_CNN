@@ -18,7 +18,7 @@ and reviewers look at this table first.)*
 ```
 .
 ├── notebooks/
-│   └── VGG19_and_Custom_Model_Training_FIXED.ipynb   # main notebook
+│   └── VGG19_and_Custom_Model_Training.ipynb   # main notebook
 ├── models/            # saved .keras model files (gitignored — see below)
 ├── outputs/           # generated plots (confusion matrix, ROC curve, Grad-CAM, etc.)
 ├── data/              # dataset goes here locally (gitignored — not committed)
@@ -53,7 +53,10 @@ pip install -r requirements.txt
 ```
 
 Place the dataset under `data/chest_x_ray/` (see structure above), then open
-`notebooks/VGG19_and_Custom_Model_Training_FIXED.ipynb` in Jupyter or Colab.
+`notebooks/VGG19_and_Custom_Model_Training.ipynb` in Jupyter or Colab. The notebook
+auto-detects whether it's running in Colab (and mounts Drive at
+`/content/drive/MyDrive/Colab Notebooks/chest_x_ray` if so) or locally (and uses
+`./data/chest_x_ray`), so no path edits should be needed either way.
 
 ## Approach
 
@@ -62,9 +65,11 @@ Place the dataset under `data/chest_x_ray/` (see structure above), then open
    (`GlobalAveragePooling2D → Dense(256) → Dropout → Dense(2, softmax)`) on top.
    This reuses general-purpose visual features learned from ~1.2M ImageNet images,
    which matters a lot here since the training set is only 200 images.
-2. **Custom CNN** — a 4-block conv net trained entirely from scratch on the same
-   200 images, included as a baseline to show the benefit of transfer learning on
-   small datasets.
+2. **Custom CNN** — a 4-block conv net (16 → 32 → 64 → 128 filters, two conv layers
+   per block) trained entirely from scratch on the same 200 images, included as a
+   baseline to show the benefit of transfer learning on small datasets. Like the
+   VGG19 head, it uses `GlobalAveragePooling2D` before the final dense layers rather
+   than `Flatten`, to keep the parameter count manageable for such a small dataset.
 3. Both models are evaluated with the same metrics: classification report, confusion
    matrix, ROC/AUC, and misclassified-example inspection. The VGG19 model additionally
    gets a Grad-CAM visualization for interpretability.
@@ -78,7 +83,8 @@ Place the dataset under `data/chest_x_ray/` (see structure above), then open
 - Data augmentation on the training set to reduce overfitting on a small dataset
 - Fixed the custom CNN's final layers — it previously bottlenecked to a 2-unit ReLU
   Dense layer right before the softmax output, discarding almost all learned features
-- Added `EarlyStopping` / `ModelCheckpoint` / `ReduceLROnPlateau` callbacks
+- Added `EarlyStopping` / `ModelCheckpoint` callbacks to both models, plus
+  `ReduceLROnPlateau` for the VGG19 model
 - Custom CNN is now actually compiled and trained (previously it was only built)
 - Added model saving, ROC curve, misclassified-example grid, and Grad-CAM
 
